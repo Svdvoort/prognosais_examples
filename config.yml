@@ -1,0 +1,139 @@
+preprocessing:
+    multi_dimension_extracting:
+        # Either first or all
+        extraction_type: first
+        # Number of dimensions image should be
+        max_number_of_dimensions: 3
+    masking:
+        mask_file: None
+        mask_background: True
+        background_value: "min"
+        crop_to_mask: True
+        process_masks: True
+    normalizing:
+        # Normalization type can be either  'image' or 'patch', in the first case the full image is normalized
+        # In the second case normalization is done per patch
+        type: patch
+        # What method of normalization, either 'range' or 'zscore'
+        normalization_method: zscore
+        # Upper and lower percentiles
+        normalization_range: [1, 99]
+        output_range: [0.01, 1]
+        # Masks can be normalized either "consecutively" (i.e. 0, 1, 2, 3) or "collapse" (all foreground labels will be 1)
+        # mask_normalization: collapse
+        # mask_smoothing: True
+    bias_field_correcting:
+        type: image
+        mask_file: None
+    resampling:
+        resample_size: [256, 256, 50]
+        type: image
+    patching:
+        patch_size: [75, 75, 20]
+        # Pad if the patch size is smaller than the image size?
+        pad_if_needed: True
+        pad_constant: 0.0
+        # Patch extraction type can be either 'random', 'fitting' or 'overlap'
+        # 'random' will randomly extract patches (requires max patches to be set)
+        # 'fitting' will extract as many patches as possible without overlap (patches will be spaced out as much as possible)
+        # 'overlap' will fit patches with a certain overlap percentages
+        extraction_type: overlap
+        # Set to -1 to get as many patches as possible
+        max_number_of_patches: -1
+        # Overlap factor in case we use overlap extraction
+        # Float between 0 and 1 (non-inclusive); the fraction of overlap between patches
+        overlap_fraction: 0.5
+    rejecting:
+        type: patch
+        rejection_limit: 0.02
+    saving:
+        use_mask_as_channel: False
+        use_mask_as_label: False
+        mask_channels: 2
+        type: patch
+    labeling:
+        train_fraction: 0.75
+        validation_fraction: 0.15
+        test_fraction: 0.1
+        make_one_hot: True
+        label_file: /path/to/label/file
+        filter_missing: True
+    general:
+        pipeline: ["resampling", "patching", "rejecting", "normalizing", "saving"]
+        sample_type: "nifti"
+        max_cpus: 1
+        mask_keyword: "MASK"
+
+general:
+  output_folder: /path/to/output
+  input_folder: /path/to/input/
+  cluster_type: None
+
+training:
+    copy_files: False
+    data_augmentation: False
+    augmentation_factor: 2
+    augmentation_settings:
+        brightness_probability: 0.35
+        brightness_delta: 0.2
+        contrast_probability: 0.35
+        contrast_min_factor: 0.85
+        contrast_max_factor: 1.15
+        crop_probability: 0.35
+        crop_size: [20, 20, 20]
+        rotate_probability: 0.35
+        max_rotate_angle: 30
+        to_rotate_axis: [0, 1, 2]
+    max_steps_per_epoch: 25
+    use_class_weights: False
+    use_class_weights_in_losses: False
+    shuffle: True
+    cache_in_memory: False
+    float_policy: False
+    # if float_policy used float16, will use this epsilon
+    # defaults to 1e-4
+    float16_epsilon: 1e-4
+# shuffle_validation: True
+
+evaluation:
+  convert_one_hot: True
+  combine_patch_predictions: True
+  patch_predictions: True
+  combination_type: average
+  # Here we put names of outputs that we want to write to nifti
+  # Instead of to file
+  image_outputs: AUTO
+  evaluate_train_set: False
+  write_predictions: True
+  evaluate_metrics: True
+  # Can specificy metrics here, same ways as for the model
+  # If no metrics are specified we will use the same ones as
+  # Used for the model during training
+  metrics:
+    name: AUC
+    settings:
+
+model:
+    architecture:
+        batch_size: 4
+        N_epoch: 2
+        dtype: float32
+        N_output: -1
+        model_name: ResNet_18
+        settings:
+            dropout: 0.25
+            one_hot_output: True
+            number_of_filters: 16
+            kernel_size: 3
+    optimizer:
+        name: Adam
+        settings:
+            learning_rate: 0.001
+    losses:
+        name: CategoricalCrossentropy
+        settings:
+    metrics:
+    callbacks:
+        nan_terminator:
+            name: 'TerminateOnNaN'
+            settings:
