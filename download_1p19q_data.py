@@ -20,8 +20,12 @@ def download_url(url, save_path, chunk_size=2056):
             fd.write(chunk)
 
 
-local_directory = input("In which local directory should the data be saved? ")
+local_directory = input("In which local directory should the data be saved? (If left blank, will be saved in current folder)")
 local_directory = os.path.normpath(local_directory)
+
+if local_directory == ".":
+    local_directory = os.getcwd()
+    local_directory = os.path.normpath(local_directory)
 
 if not os.path.exists(local_directory):
     create_local_dir = "unselected"
